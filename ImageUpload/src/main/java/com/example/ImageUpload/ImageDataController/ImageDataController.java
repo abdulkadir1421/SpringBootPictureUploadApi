@@ -7,10 +7,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,15 +34,27 @@ public class ImageDataController {
             if (file.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please select a file to upload.");
             }
+            String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 
             // Convert MultipartFile to byte array
-            byte[] imageData = file.getBytes();
+//            byte[] imageData = file.getBytes();
 
             // Create Image entity and save it to the database
             ImageDataModel image = new ImageDataModel();
-            image.setName(file.getOriginalFilename());
-            image.setData(imageData);
+            image.setName(fileName);
+            image.setData(file.getBytes());
             imageDataRepository.save(image);
+
+//            Save to Project Folder
+            String uploadDir = "./uploads"; // Change this to your desired directory
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
 
             return ResponseEntity.status(HttpStatus.OK).body("Image uploaded successfully.");
         } catch (IOException e) {
